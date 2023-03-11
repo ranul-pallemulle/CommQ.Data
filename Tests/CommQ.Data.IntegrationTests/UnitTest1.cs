@@ -1,13 +1,12 @@
 using CommQ.Data.Common;
 using CommQ.Data.Extensions;
-using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace CommQ.Data.IntegrationTests
 {
     public class UnitTest1
     {
-        private readonly string _connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=CommQDataTests;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        private readonly string _connectionString = "Data Source=LEG13N;Initial Catalog=CommQDataTests;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         [Fact]
         public async Task UnitOfWorkTest()
         {
@@ -27,6 +26,40 @@ namespace CommQ.Data.IntegrationTests
 
                 await uow.SaveChangesAsync();
             }
+        }
+
+        [Fact]
+        public async Task ReadUncommittedTransactions()
+        {
+            var uowFactory = new UnitOfWorkFactory(_connectionString);
+
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                await PopulateTestTable(uow.CreateWriter());
+                await uow.SaveChangesAsync();
+            }
+
+            await using var uow1 = await uowFactory.CreateAsync();
+            await using var uow2 = await uowFactory.CreateAsync(IsolationLevel.ReadUncommitted);
+
+            var dbReader1 = uow1.CreateReader();
+            var dbWriter1 = uow1.CreateWriter();
+
+            var dbReader2 = uow2.CreateReader();
+            var dbWriter2 = uow2.CreateWriter();
+
+            // should obtain a row lock
+            await dbWriter1.CommandAsync("UPDATE dbo.TestTable SET Name = @Name WHERE Id = 2", parameters =>
+            {
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test2Modified";
+            });
+
+            var item1 = await dbReader1.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
+            var item2 = await dbReader2.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
+
+            Assert.Equal("Test2Modified", item1.Name);
+            Assert.Equal("Test2Modified", item2.Name);
+
         }
 
         [Fact]
