@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace CommQ.Data.Abstractions
+namespace CommQ.Data
 {
     public interface IDbCommandExecutor
     {

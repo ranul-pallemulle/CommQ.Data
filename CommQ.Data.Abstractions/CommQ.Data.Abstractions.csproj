@@ -5,13 +5,14 @@
     <Nullable>enable</Nullable>
 	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 	<Authors>Ranul Pallemulle</Authors>
-	<Version>1.2.0-beta.1</Version>
+	<Version>1.2.0-beta.2</Version>
 	<Description>A Unit Of Work implementation.</Description>
 	<RepositoryUrl>https://github.com/ranul-pallemulle/CommQ.Data</RepositoryUrl>
 	<PackageTags>Unit of Work; Repository; SqlServer;</PackageTags>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<RootNamespace>CommQ.Data</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
