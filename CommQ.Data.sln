@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.UnitTests", "Tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.IntegrationTests", "Tests\CommQ.Data.IntegrationTests\CommQ.Data.IntegrationTests.csproj", "{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommQ.Data.Abstractions", "CommQ.Data.Abstractions\CommQ.Data.Abstractions.csproj", "{8F699F60-4BCA-474F-9112-CE61D786870B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.Abstractions", "CommQ.Data.Abstractions\CommQ.Data.Abstractions.csproj", "{8F699F60-4BCA-474F-9112-CE61D786870B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D42F92D5-4FB8-4C39-9B4F-78F7D9290577}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +38,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4F42F271-04BF-47AB-98EB-DCEFA52A06ED} = {D42F92D5-4FB8-4C39-9B4F-78F7D9290577}
+		{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018} = {D42F92D5-4FB8-4C39-9B4F-78F7D9290577}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8734B944-61F2-4FEC-BE10-57FF6574B130}

@@ -7,7 +7,7 @@ namespace CommQ.Data.UnitTests
     public class UnitTest1
     {
         [Fact]
-        public async Task DbWriter()
+        public async Task DbWriterTest()
         {
             var connection = new Mock<IDbConnection>();
             var command = new Mock<IDbCommand>();
@@ -48,7 +48,7 @@ namespace CommQ.Data.UnitTests
         }
 
         [Fact]
-        public async Task DbReader()
+        public async Task DbReaderTest()
         {
             var connection = new Mock<IDbConnection>();
             var command = new Mock<IDbCommand>();
@@ -69,7 +69,7 @@ namespace CommQ.Data.UnitTests
 
             await using (var dbReader = sut)
             {
-                var item = await sut.SingleAsync<TestEntity>("SELECT * FROM TestEntities WHERE Id = @Id", parameters =>
+                var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM TestEntities WHERE Id = @Id", parameters =>
                 {
                     parameters.Add("@Id", SqlDbType.Int).Value = 2;
                 });
@@ -88,6 +88,27 @@ namespace CommQ.Data.UnitTests
             Assert.Equal(SqlDbType.Int, parameter.SqlDbType);
 
             
+        }
+
+        [Fact]
+        public async Task StoredProcedureTest()
+        {
+            var connection = new Mock<IDbConnection>();
+            var command = new Mock<IDbCommand>();
+            var reader = new Mock<IDataReader>();
+
+            connection.Setup(c => c.CreateCommand()).Returns(command.Object);
+
+            IDbReader sut = new DbReader(connection.Object);
+
+            await using (var dbReader = sut)
+            {
+                await dbReader.StoredProcedureAsync("TestProc");
+            }
+
+            command.VerifySet(c => c.CommandText = "TestProc");
+            command.VerifySet(c => c.CommandType = CommandType.StoredProcedure);
+            command.Verify(c => c.ExecuteReader(), Times.Once);
         }
     }
 

@@ -69,25 +69,75 @@ namespace CommQ.Data.IntegrationTests
             await PopulateTestTable(dbWriter);
             await uow.SaveChangesAsync();
 
+            var dbReaderFactory = new DbReaderFactory(_connectionString);
+
+            await using var dbReader = await dbReaderFactory.CreateAsync();
+            var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = @Id", parameters =>
+            {
+                parameters.Add("@Id", SqlDbType.Int).Value = 2;
+            });
+
+            Assert.Equal("Test2", item?.Name);
+
+            var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Name = @Name", parameters =>
+            {
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
+            });
+
+            Assert.Null(nonExistentItem);
+        }
+
+        [Fact]
+        public async Task DbWriterTest()
+        {
+            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                var dbWriter = uow.CreateWriter();
+                await PopulateTestTable(dbWriter);
+                await uow.SaveChangesAsync();
+            }
+
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                var dbWriter = uow.CreateWriter();
+
+                var id = await dbWriter.CommandAsync<int>("INSERT INTO dbo.TestTable (Name) OUTPUT INSERTED.Id VALUES (@Name)", parameters =>
+                {
+                    parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test";
+                });
+
+                Assert.Equal(3, id);
+            }
+        }
+
+        [Fact]
+        public async Task DbReaderMappingTest()
+        {
+            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            await using var uow = await uowFactory.CreateAsync();
+            var dbWriter = uow.CreateWriter();
+            await PopulateTestTable(dbWriter);
+            await uow.SaveChangesAsync();
+
 
             var dbReaderFactory = new DbReaderFactory(_connectionString);
 
-            await using (var dbReader = await dbReaderFactory.CreateAsync())
+            await using var dbReader = await dbReaderFactory.CreateAsync();
+            var mapper = new TestMappedEntityMapper();
+            var item = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Id = @Id", mapper, parameters =>
             {
-                var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = @Id", parameters =>
-                {
-                    parameters.Add("@Id", SqlDbType.Int).Value = 2;
-                });
+                parameters.Add("@Id", SqlDbType.Int).Value = 2;
+            });
 
-                Assert.Equal("Test2", item?.Name);
+            Assert.Equal("Test2", item?.Name);
 
-                var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Name = @Name", parameters =>
-                {
-                    parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
-                });
+            var nonExistentItem = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Name = @Name", mapper, parameters =>
+            {
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
+            });
 
-                Assert.Null(nonExistentItem);
-            }
+            Assert.Null(nonExistentItem);
         }
 
         private async Task<int> PopulateTestTable(IDbWriter dbWriter)
@@ -125,6 +175,30 @@ namespace CommQ.Data.IntegrationTests
             Name = (string)reader["Name"];
 
             return this;
+        }
+    }
+
+    internal class TestMappedEntity
+    {
+        public TestMappedEntity(int id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    internal class TestMappedEntityMapper : IDataMapper<TestMappedEntity>
+    {
+        public TestMappedEntity Map(IDataReader dataReader)
+        {
+            var id = (int)dataReader["Id"];
+            var name = (string)dataReader["Name"];
+
+            var entity = new TestMappedEntity(id, name);
+            return entity;
         }
     }
 }
