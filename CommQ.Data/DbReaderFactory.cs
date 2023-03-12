@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CommQ.Data.Common
+namespace CommQ.Data
 {
     public class DbReaderFactory : IDbReaderFactory
     {

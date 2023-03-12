@@ -6,12 +6,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CommQ.Data.Common
+namespace CommQ.Data
 {
     public class DbReader : IDbReader
     {
-        private readonly IDbConnection _dbConnection;
-        private readonly IUnitOfWork _uow;
+        private readonly IDbConnection? _dbConnection;
+        private readonly IUnitOfWork? _uow;
 
         public DbReader(IDbConnection sqlConnection)
         {
@@ -23,25 +23,27 @@ namespace CommQ.Data.Common
             _uow = uow;
         }
 
-        public async ValueTask<IDataReader> RawAsync(string query, Action<IDataParameterCollection> setupParameters = null, CancellationToken cancellationToken = default)
+        public async ValueTask<IDataReader> RawAsync(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
-            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
-            setupParameters?.Invoke(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand.Parameters);
+            setupParameters?.Invoke(parameters);
             var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             return reader;
         }
 
-        public async ValueTask<IEnumerable<T>> EnumerableAsync<T>(string query, Action<IDataParameterCollection> setupParameters = null, CancellationToken cancellationToken = default) where T : IDbReadable<T>, new()
+        public async ValueTask<IEnumerable<T>> EnumerableAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : IDbReadable<T>, new()
         {
             var data = new List<T>();
-            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
-            setupParameters?.Invoke(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand.Parameters);
+            setupParameters?.Invoke(parameters);
 
             using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -53,25 +55,27 @@ namespace CommQ.Data.Common
             return data;
         }
 
-        public async ValueTask<T> ScalarAsync<T>(string query, Action<IDataParameterCollection> setupParameters = null, CancellationToken cancellationToken = default)
+        public async ValueTask<T> ScalarAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
-            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
-            setupParameters?.Invoke(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand.Parameters);
+            setupParameters?.Invoke(parameters);
 
             var result = (T)await dbCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return result;
         }
 
-        public async ValueTask<T> SingleAsync<T>(string query, Action<IDataParameterCollection> setupParameters = null, CancellationToken cancellationToken = default) where T : IDbReadable<T>, new()
+        public async ValueTask<T> SingleAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : IDbReadable<T>, new()
         {
-            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
-            setupParameters?.Invoke(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand.Parameters);
+            setupParameters?.Invoke(parameters);
 
             using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -91,7 +95,7 @@ namespace CommQ.Data.Common
 
         public void Dispose()
         {
-            if (_dbConnection != null )
+            if (_dbConnection != null)
             {
                 _dbConnection.Close();
                 _dbConnection.Dispose();

@@ -1,10 +1,16 @@
 # CommQ.Data
 
-A Unit of Work implementation. Uses types from System.Data. Includes some helper classes to make database access more convenient.  
+A Unit of Work implementation. Uses types from System.Data.
   
 Not an ORM.
 
+## Usage
+Install the `CommQ.Data` NuGet package - https://www.nuget.org/packages/CommQ.Data/
+
+Alternatively, install the `CommQ.Data.Abstractions` NuGet package in your core/domain project and install `CommQ.Data` elsewhere - https://www.nuget.org/packages/CommQ.Data.Abstractions/
+
 ### Creating a unit of work
+Note: if you are using dependency injection, see [Dependency Injection](#dependency-injection).
 ```csharp
 var factory = new UnitOfWorkFactory(connectionString);
 await using var uow = await factory.CreateAsync();

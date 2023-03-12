@@ -25,7 +25,7 @@ namespace CommQ.Data.Extensions
             {
                 return await sqlCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             }
-            return dbCommand.ExecuteScalar();
+            return dbCommand.ExecuteScalar()!;
         }
 
         public static async Task<int> ExecuteNonQueryAsync(this IDbCommand dbCommand, CancellationToken cancellationToken = default)

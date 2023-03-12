@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CommQ.Data.Common
+namespace CommQ.Data
 {
     public class DbWriter : IDbWriter
     {
@@ -17,14 +17,15 @@ namespace CommQ.Data.Common
             _unitOfWork = unitOfWork;
         }
 
-        public async ValueTask<int> CommandAsync(string command, Action<IDataParameterCollection> setupParameters = null, CancellationToken cancellationToken = default)
+        public async ValueTask<int> CommandAsync(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
             using (var dbCommand = _unitOfWork.CreateCommand())
             {
                 dbCommand.CommandType = CommandType.Text;
                 dbCommand.CommandText = command;
 
-                setupParameters?.Invoke(dbCommand.Parameters);
+                var parameters = new DbParameters(dbCommand.Parameters);
+                setupParameters?.Invoke(parameters);
 
                 return await dbCommand.ExecuteNonQueryAsync();
             }

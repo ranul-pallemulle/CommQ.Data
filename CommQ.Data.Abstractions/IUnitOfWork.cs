@@ -1,5 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
-using System;
+﻿using System;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +10,8 @@ namespace CommQ.Data
         IDbCommand CreateCommand();
         IDbWriter CreateWriter();
         IDbReader CreateReader();
+        Task BeginTransactionAsync();
+        Task BeginTransactionAsync(IsolationLevel isolationLevel);
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

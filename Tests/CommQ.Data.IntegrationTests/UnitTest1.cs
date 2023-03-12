@@ -1,5 +1,3 @@
-using CommQ.Data.Common;
-using CommQ.Data.Extensions;
 using System.Data;
 
 namespace CommQ.Data.IntegrationTests
@@ -101,8 +99,19 @@ namespace CommQ.Data.IntegrationTests
 
     internal class TestEntity : IDbReadable<TestEntity>
     {
+        public TestEntity()
+        {
+
+        }
+
+        public TestEntity(int id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public TestEntity Read(IDataReader reader)
         {
             Id = reader["Id"] as int? ?? throw new InvalidCastException("Id was null");

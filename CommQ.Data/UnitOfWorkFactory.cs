@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CommQ.Data.Common
+namespace CommQ.Data
 {
     public class UnitOfWorkFactory : IUnitOfWorkFactory
     {
@@ -19,16 +19,24 @@ namespace CommQ.Data.Common
 
         public async Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default)
         {
-            var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            return new UnitOfWork(connection);
+            var uow = await ConstructUnitOfWork(cancellationToken);
+            await uow.BeginTransactionAsync().ConfigureAwait(false);
+            return uow;
         }
 
         public async Task<IUnitOfWork> CreateAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
+            var uow = await ConstructUnitOfWork(cancellationToken);
+            await uow.BeginTransactionAsync(isolationLevel).ConfigureAwait(false);
+            return uow;
+        }
+
+        private async Task<IUnitOfWork> ConstructUnitOfWork(CancellationToken cancellationToken)
+        {
             var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-            return new UnitOfWork(connection, isolationLevel);
+            var uow = new UnitOfWork(connection);
+            return uow;
         }
     }
 }

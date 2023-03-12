@@ -1,5 +1,3 @@
-using CommQ.Data.Common;
-using CommQ.Data.Extensions;
 using Microsoft.Data.SqlClient;
 using Moq;
 using System.Data;
@@ -22,10 +20,13 @@ namespace CommQ.Data.UnitTests
             command.Setup(c => c.Parameters).Returns(realCommand.Parameters);
 
             IUnitOfWork sut = new UnitOfWork(connection.Object);
+            connection.Verify(c => c.BeginTransaction(), Times.Never());
+
+            await sut.BeginTransactionAsync();
+            connection.Verify(c => c.BeginTransaction(), Times.Once);
 
             await using (var uow = sut)
             {
-                connection.Verify(c => c.BeginTransaction(), Times.Once);
                 var dbWriter = new DbWriter(uow);
                 await dbWriter.CommandAsync("", parameters =>
                 {
@@ -35,6 +36,11 @@ namespace CommQ.Data.UnitTests
                 transaction.Verify(t => t.Commit(), Times.Never);
                 await uow.SaveChangesAsync();
                 transaction.Verify(t => t.Commit(), Times.Once);
+
+                await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                {
+                    await uow.SaveChangesAsync();
+                });
             }
 
             transaction.Verify(t => t.Dispose(), Times.Once);
@@ -86,8 +92,19 @@ namespace CommQ.Data.UnitTests
 
     internal class TestEntity : IDbReadable<TestEntity>
     {
+        public TestEntity()
+        {
+
+        }
+
+        public TestEntity(int id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public TestEntity Read(IDataReader reader)
         {
             Id = reader["Id"] as int? ?? throw new InvalidCastException("Id was null");

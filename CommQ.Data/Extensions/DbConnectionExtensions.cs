@@ -25,5 +25,23 @@ namespace CommQ.Data.Extensions
             }
             dbConnection.Dispose();
         }
+
+        public static async Task<IDbTransaction> BeginTransactionAsync(this IDbConnection dbConnection)
+        {
+            if (dbConnection is SqlConnection sqlConnection)
+            {
+                return await sqlConnection.BeginTransactionAsync().ConfigureAwait(false);
+            }
+            return dbConnection.BeginTransaction();
+        }
+
+        public static async Task<IDbTransaction> BeginTransactionAsync(this IDbConnection dbConnection, IsolationLevel isolationLevel)
+        {
+            if (dbConnection is SqlConnection sqlConnection)
+            {
+                return await sqlConnection.BeginTransactionAsync(isolationLevel).ConfigureAwait(false);
+            }
+            return dbConnection.BeginTransaction(isolationLevel);
+        }
     }
 }
