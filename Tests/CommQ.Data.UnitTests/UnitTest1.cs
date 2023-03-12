@@ -107,8 +107,8 @@ namespace CommQ.Data.UnitTests
         public string Name { get; set; } = null!;
         public TestEntity Read(IDataReader reader)
         {
-            Id = reader["Id"] as int? ?? throw new InvalidCastException("Id was null");
-            Name = reader["Name"] as string ?? throw new InvalidCastException("Name was null");
+            Id = (int)reader["Id"];
+            Name = (string)reader["Name"];
 
             return this;
         }

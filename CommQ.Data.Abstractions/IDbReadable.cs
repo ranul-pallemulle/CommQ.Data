@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CommQ.Data
 {
-    public interface IDbReadable<T>
+    public interface IDbReadable<T> where T : new()
     {
         T Read(IDataReader reader);
     }

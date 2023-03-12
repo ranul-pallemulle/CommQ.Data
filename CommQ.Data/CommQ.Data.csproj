@@ -5,7 +5,7 @@
 	<Nullable>enable</Nullable>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Authors>Ranul Pallemulle</Authors>
-	<Version>1.0.1-beta.3</Version>
+	<Version>1.0.1-beta.4</Version>
     <Description>A Unit Of Work implementation.</Description>
     <RepositoryUrl>https://github.com/ranul-pallemulle/CommQ.Data</RepositoryUrl>
     <PackageTags>Unit of Work; Repository; SqlServer;</PackageTags>
@@ -26,8 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommQ.Data.Abstractions" Version="1.0.1-beta.3" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CommQ.Data.Abstractions\CommQ.Data.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>
