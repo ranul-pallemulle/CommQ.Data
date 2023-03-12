@@ -27,7 +27,7 @@ namespace CommQ.Data.IntegrationTests
         }
 
         [Fact]
-        public async Task ReadUncommittedTransactions()
+        public async Task ReadUncommittedTransactionsTest()
         {
             var uowFactory = new UnitOfWorkFactory(_connectionString);
 
@@ -55,8 +55,8 @@ namespace CommQ.Data.IntegrationTests
             var item1 = await dbReader1.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
             var item2 = await dbReader2.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
 
-            Assert.Equal("Test2Modified", item1.Name);
-            Assert.Equal("Test2Modified", item2.Name);
+            Assert.Equal("Test2Modified", item1?.Name);
+            Assert.Equal("Test2Modified", item2?.Name);
 
         }
 
@@ -79,7 +79,14 @@ namespace CommQ.Data.IntegrationTests
                     parameters.Add("@Id", SqlDbType.Int).Value = 2;
                 });
 
-                Assert.Equal("Test2", item.Name);
+                Assert.Equal("Test2", item?.Name);
+
+                var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Name = @Name", parameters =>
+                {
+                    parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
+                });
+
+                Assert.Null(nonExistentItem);
             }
         }
 

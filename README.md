@@ -7,7 +7,7 @@ Not an ORM.
 ## Usage
 Install the `CommQ.Data` NuGet package - https://www.nuget.org/packages/CommQ.Data/
 
-Alternatively, install the `CommQ.Data.Abstractions` NuGet package in your core/domain project and install `CommQ.Data` elsewhere - https://www.nuget.org/packages/CommQ.Data.Abstractions/
+`CommQ.Data` depends on `Microsoft.Data.SqlClient`. Therefore, installing it brings in several sub-dependencies. If you'd like to avoid this you could install the `CommQ.Data.Abstractions` NuGet package in your core projects and install `CommQ.Data` elsewhere - https://www.nuget.org/packages/CommQ.Data.Abstractions/
 
 ### Creating a unit of work
 Note: if you are using dependency injection, see [Dependency Injection](#dependency-injection).

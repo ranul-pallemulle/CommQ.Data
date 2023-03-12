@@ -60,6 +60,7 @@ namespace CommQ.Data.UnitTests
             command.Setup(c => c.Parameters).Returns(realCommand.Parameters);
             command.Setup(c => c.ExecuteReader()).Returns(reader.Object);
 
+            reader.Setup(r => r.Read()).Returns(true);
             reader.Setup(r => r["Id"]).Returns(2);
             reader.Setup(r => r["Name"]).Returns("TestName");
 
@@ -75,8 +76,8 @@ namespace CommQ.Data.UnitTests
 
                 command.Verify(c => c.ExecuteReader(), Times.Once);
 
-                Assert.Equal(2, item.Id);
-                Assert.Equal("TestName", item.Name);
+                Assert.Equal(2, item?.Id);
+                Assert.Equal("TestName", item?.Name);
             }
 
             connection.Verify(connection => connection.Dispose(), Times.Once);

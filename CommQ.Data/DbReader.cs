@@ -68,7 +68,7 @@ namespace CommQ.Data
             return result;
         }
 
-        public async ValueTask<T> SingleAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : IDbReadable<T>, new()
+        public async ValueTask<T?> SingleAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : class, IDbReadable<T>, new()
         {
             using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
@@ -78,10 +78,14 @@ namespace CommQ.Data
             setupParameters?.Invoke(parameters);
 
             using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            var item = new T();
-            item.Read(reader);
-            return item;
+            var exists = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            if (exists)
+            {
+                var item = new T();
+                item.Read(reader);
+                return item;
+            }
+            return default;
         }
 
         public async ValueTask DisposeAsync()
