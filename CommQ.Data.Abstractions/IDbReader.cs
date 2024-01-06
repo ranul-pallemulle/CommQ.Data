@@ -13,5 +13,7 @@ namespace CommQ.Data
         ValueTask<T?> SingleAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : class, IDbReadable<T>, new();
         ValueTask<T?> SingleAsync<T>(string query, IDataMapper<T> mapper, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : class;
         ValueTask<T> ScalarAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default);
+        ValueTask<IDataReader> StoredProcedureAsync(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default);
+        ValueTask<T> StoredProcedureAsync<T>(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default);
     }
 }

@@ -36,14 +36,5 @@ namespace CommQ.Data.Extensions
             }
             return dbCommand.ExecuteNonQuery();
         }
-
-        public static async Task<IDataReader> ExecuteStoredProcedureAsync(this IDbCommand dbCommand, CancellationToken cancellationToken = default)
-        {
-            if (dbCommand is SqlCommand sqlCommand)
-            {
-                return await sqlCommand.ExecuteStoredProcedureAsync(cancellationToken).ConfigureAwait(false);
-            }
-            return await dbCommand.ExecuteReaderAsync(cancellationToken);
-        }
     }
 }

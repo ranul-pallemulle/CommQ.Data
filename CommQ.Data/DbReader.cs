@@ -43,8 +43,20 @@ namespace CommQ.Data
 
             var parameters = new DbParameters(dbCommand.Parameters);
             setupParameters?.Invoke(parameters);
-            var reader = await dbCommand.ExecuteStoredProcedureAsync(cancellationToken).ConfigureAwait(false);
-            return reader;
+            return await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public async ValueTask<T> StoredProcedureAsync<T>(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
+        {
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
+            dbCommand.CommandType = CommandType.StoredProcedure;
+            dbCommand.CommandText = storedProcedureName;
+
+            var parameters = new DbParameters(dbCommand.Parameters);
+            setupParameters?.Invoke(parameters);
+
+            var result = (T)await dbCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            return result;
         }
 
         public async ValueTask<IEnumerable<T>> EnumerableAsync<T>(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default) where T : class, IDbReadable<T>, new()

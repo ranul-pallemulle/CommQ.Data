@@ -88,6 +88,26 @@ namespace CommQ.Data.IntegrationTests
         }
 
         [Fact]
+        public async Task StoredProcedureTest()
+        {
+            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                await PopulateTestTable(uow.CreateWriter());
+                await uow.SaveChangesAsync();
+            }
+            var dbrFactory = new DbReaderFactory(_connectionString);
+
+            await using var dbReader = await dbrFactory.CreateAsync();
+            var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
+            {
+                parameters.Add("@name", SqlDbType.VarChar, 20).Value = "Test1";
+            });
+            var hasRows = reader.Read();
+            Assert.True(hasRows);
+        }
+
+        [Fact]
         public async Task DbWriterTest()
         {
             var uowFactory = new UnitOfWorkFactory(_connectionString);
@@ -142,8 +162,37 @@ namespace CommQ.Data.IntegrationTests
 
         private async Task<int> PopulateTestTable(IDbWriter dbWriter)
         {
+            await dbWriter.CommandAsync("DROP PROCEDURE IF EXISTS dbo.BasicReadProc");
+            await dbWriter.CommandAsync("DROP PROCEDURE IF EXISTS dbo.BasicWriteProc");
             await dbWriter.CommandAsync("DROP TABLE IF EXISTS dbo.TestTable");
             await dbWriter.CommandAsync("CREATE TABLE dbo.TestTable (Id INT PRIMARY KEY IDENTITY(1,1), Name VARCHAR(200))");
+            await dbWriter.CommandAsync(@"
+            CREATE PROCEDURE [dbo].[BasicReadProc]
+                @name VARCHAR(20)
+            AS
+            BEGIN
+                -- SET NOCOUNT ON added to prevent extra result sets from
+                -- interfering with SELECT statements.
+                SET NOCOUNT ON;
+
+                -- Insert statements for procedure here
+                SELECT Id, [Name] FROM dbo.TestTable WHERE [Name] = @name;
+            END
+            ");
+            await dbWriter.CommandAsync(@"
+            CREATE PROCEDURE [dbo].[BasicWriteProc]
+                @name VARCHAR(20)
+            AS
+            BEGIN
+                -- SET NOCOUNT ON added to prevent extra result sets from
+                -- interfering with SELECT statements.
+                SET NOCOUNT ON;
+
+                -- Insert statements for procedure here
+                INSERT INTO dbo.TestTable ([Name])
+                VALUES (@name)
+            END
+            ");
             var numRows = await dbWriter.CommandAsync("INSERT INTO dbo.TestTable (Name) VALUES (@Name1), (@Name2)", parameters =>
             {
                 parameters.Add("@Name1", SqlDbType.VarChar, 200).Value = "Test1";
