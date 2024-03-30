@@ -3,13 +3,12 @@ using System.Data;
 
 namespace CommQ.Data.IntegrationTests
 {
-    public class UnitTest1
+    public class SqlServerTests
     {
-        private readonly string _connectionString = "Data Source=LEG13N;Initial Catalog=CommQDataTests;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         [Fact]
         public async Task UnitOfWorkTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
@@ -31,7 +30,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task ReadUncommittedTransactionsTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
@@ -66,7 +65,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbReaderTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
@@ -78,7 +77,7 @@ namespace CommQ.Data.IntegrationTests
             await using var dbReader = await dbReaderFactory.CreateAsync();
             var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = @Id", parameters =>
             {
-                parameters.Add("@Id", DbType.Int32).Value = 2;
+                parameters.Add("@Id", DbType.Int64).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
@@ -94,7 +93,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task StoredProcedureTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -115,7 +114,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbWriterTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -128,7 +127,7 @@ namespace CommQ.Data.IntegrationTests
             {
                 var dbWriter = uow.CreateWriter();
 
-                var id = await dbWriter.CommandAsync<int>("INSERT INTO dbo.TestTable (Name) OUTPUT INSERTED.Id VALUES (@Name)", parameters =>
+                var id = await dbWriter.CommandAsync<long>("INSERT INTO dbo.TestTable (Name) OUTPUT INSERTED.Id VALUES (@Name)", parameters =>
                 {
                     parameters.Add("@Name", DbType.String, 200).Value = "Test";
                 });
@@ -140,7 +139,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbWriterFactoryTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var dbrFactory = new DbReaderFactory(connFactory);
             var dbwFactory = new DbWriterFactory(connFactory);
 
@@ -178,7 +177,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbReaderMappingTest()
         {
-            var connFactory = GetConnectionFactory();
+            var connFactory = new TestConnections().SqlServer;
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
@@ -192,7 +191,7 @@ namespace CommQ.Data.IntegrationTests
             var mapper = new TestMappedEntityMapper();
             var item = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Id = @Id", mapper, parameters =>
             {
-                parameters.Add("@Id", DbType.Int32).Value = 2;
+                parameters.Add("@Id", DbType.Int64).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
@@ -211,7 +210,7 @@ namespace CommQ.Data.IntegrationTests
             await dbWriter.CommandAsync("DROP PROCEDURE IF EXISTS dbo.BasicWriteProc");
             await dbWriter.CommandAsync("DROP TABLE IF EXISTS dbo.TestTable");
 
-            await dbWriter.CommandAsync("CREATE TABLE dbo.TestTable (Id INT PRIMARY KEY IDENTITY(1,1), Name VARCHAR(200))");
+            await dbWriter.CommandAsync("CREATE TABLE dbo.TestTable (Id BIGINT PRIMARY KEY IDENTITY(1,1), Name VARCHAR(200))");
             await dbWriter.CommandAsync(@"
             CREATE PROCEDURE [dbo].[BasicReadProc]
                 @name VARCHAR(20)
@@ -251,13 +250,7 @@ namespace CommQ.Data.IntegrationTests
 
             return numRows;
         }
-
-        private IConnectionFactory GetConnectionFactory()
-        {
-            return new SqlServerConnectionFactory(_connectionString);
-        }
     }
-
     internal class SqlServerConnectionFactory : IConnectionFactory
     {
         private readonly string _connectionString;
@@ -273,51 +266,9 @@ namespace CommQ.Data.IntegrationTests
         }
     }
 
-    internal class TestEntity : IDbReadable<TestEntity>
+    internal partial class TestConnections
     {
-        public TestEntity()
-        {
-
-        }
-
-        public TestEntity(int id, string name)
-        {
-            Id = id;
-            Name = name;
-        }
-
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public TestEntity Read(IDataReader reader)
-        {
-            Id = (int)reader["Id"];
-            Name = (string)reader["Name"];
-
-            return this;
-        }
-    }
-
-    internal class TestMappedEntity
-    {
-        public TestMappedEntity(int id, string name)
-        {
-            Id = id;
-            Name = name;
-        }
-
-        public int Id { get; set; }
-        public string Name { get; set; }
-    }
-
-    internal class TestMappedEntityMapper : IDataMapper<TestMappedEntity>
-    {
-        public TestMappedEntity Map(IDataReader dataReader)
-        {
-            var id = (int)dataReader["Id"];
-            var name = (string)dataReader["Name"];
-
-            var entity = new TestMappedEntity(id, name);
-            return entity;
-        }
+        public IConnectionFactory SqlServer { get; } = new SqlServerConnectionFactory(
+            "Data Source=LEG13N;Initial Catalog=CommQDataTests;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False");
     }
 }
