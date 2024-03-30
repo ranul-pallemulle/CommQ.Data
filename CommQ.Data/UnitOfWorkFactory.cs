@@ -5,6 +5,11 @@ using System.Threading.Tasks;
 
 namespace CommQ.Data
 {
+    public interface IUnitOfWorkFactory
+    {
+        Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default);
+        Task<IUnitOfWork> CreateAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
+    }
     public class UnitOfWorkFactory : IUnitOfWorkFactory
     {
         private readonly IConnectionFactory _connectionFactory;

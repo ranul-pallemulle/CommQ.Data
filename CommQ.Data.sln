@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.UnitTests", "Tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.IntegrationTests", "Tests\CommQ.Data.IntegrationTests\CommQ.Data.IntegrationTests.csproj", "{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommQ.Data.Abstractions", "CommQ.Data.Abstractions\CommQ.Data.Abstractions.csproj", "{8F699F60-4BCA-474F-9112-CE61D786870B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D42F92D5-4FB8-4C39-9B4F-78F7D9290577}"
 EndProject
 Global
@@ -31,10 +29,6 @@ Global
 		{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D8F5E1F-43A1-4D17-ADAA-C3F357F3A018}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8F699F60-4BCA-474F-9112-CE61D786870B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8F699F60-4BCA-474F-9112-CE61D786870B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8F699F60-4BCA-474F-9112-CE61D786870B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8F699F60-4BCA-474F-9112-CE61D786870B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -4,6 +4,11 @@ using System.Threading.Tasks;
 
 namespace CommQ.Data
 {
+    public interface IDbReaderFactory
+    {
+        Task<IDbReader> CreateAsync(CancellationToken cancellationToken = default);
+    }
+
     public class DbReaderFactory : IDbReaderFactory
     {
         private readonly IConnectionFactory _connectionFactory;
