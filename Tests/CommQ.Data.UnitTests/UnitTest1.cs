@@ -58,6 +58,7 @@ namespace CommQ.Data.UnitTests
 
             var realCommand = new SqlCommand();
             command.Setup(c => c.Parameters).Returns(realCommand.Parameters);
+            command.Setup(c => c.CreateParameter()).Returns(() => realCommand.CreateParameter());
             command.Setup(c => c.ExecuteReader()).Returns(reader.Object);
 
             reader.Setup(r => r.Read()).Returns(true);
@@ -71,7 +72,7 @@ namespace CommQ.Data.UnitTests
             {
                 var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM TestEntities WHERE Id = @Id", parameters =>
                 {
-                    parameters.Add("@Id", SqlDbType.Int).Value = 2;
+                    parameters.Add("@Id", DbType.Int32).Value = 2;
                 });
 
                 command.Verify(c => c.ExecuteReader(), Times.Once);

@@ -1,10 +1,6 @@
-﻿using CommQ.Data.Extensions;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using System.Data;
 using System.Data.Common;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,10 +21,13 @@ namespace CommQ.Data
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
-            var parameters = new DbParameters(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand);
             setupParameters?.Invoke(parameters);
-            var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            return reader;
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return await dbCommand_.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return dbCommand.ExecuteReader();
         }
 
         public async ValueTask<int> StoredProcedureAsync(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
@@ -37,22 +36,41 @@ namespace CommQ.Data
             dbCommand.CommandType = CommandType.StoredProcedure;
             dbCommand.CommandText = storedProcedureName;
 
-            var parameters = new DbParameters(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand);
             setupParameters?.Invoke(parameters);
-            return await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return await dbCommand_.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return dbCommand.ExecuteNonQuery();
         }
 
+#if NET5_0_OR_GREATER
+        public async ValueTask<T?> StoredProcedureAsync<T>(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
+#else
         public async ValueTask<T> StoredProcedureAsync<T>(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
+#endif
         {
             using var dbCommand = _unitOfWork.CreateCommand();
             dbCommand.CommandType = CommandType.StoredProcedure;
             dbCommand.CommandText = storedProcedureName;
 
-            var parameters = new DbParameters(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand);
             setupParameters?.Invoke(parameters);
 
-            var result = (T)await dbCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            return result;
+#if NET5_0_OR_GREATER
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return (T?)await dbCommand_.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return (T?)dbCommand.ExecuteScalar();
+#else
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return (T)await dbCommand_.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return (T)dbCommand.ExecuteScalar();
+#endif
         }
 
         public async ValueTask<int> CommandAsync(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
@@ -61,23 +79,42 @@ namespace CommQ.Data
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = command;
 
-            var parameters = new DbParameters(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand);
             setupParameters?.Invoke(parameters);
 
-            return await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return await dbCommand_.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return dbCommand.ExecuteNonQuery();
         }
 
+#if NET5_0_OR_GREATER
+        public async ValueTask<T?> CommandAsync<T>(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
+#else
         public async ValueTask<T> CommandAsync<T>(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
+#endif
         {
             using var dbCommand = _unitOfWork.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = command;
 
-            var parameters = new DbParameters(dbCommand.Parameters);
+            var parameters = new DbParameters(dbCommand);
             setupParameters?.Invoke(parameters);
 
-            var result = (T)await dbCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            return result;
+#if NET5_0_OR_GREATER
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return (T?)await dbCommand_.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return (T?)dbCommand.ExecuteScalar();
+#else
+            if (dbCommand is DbCommand dbCommand_)
+            {
+                return (T)await dbCommand_.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return (T)dbCommand.ExecuteScalar();
+#endif
         }
     }
 }

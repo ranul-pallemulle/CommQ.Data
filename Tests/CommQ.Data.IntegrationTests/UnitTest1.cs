@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace CommQ.Data.IntegrationTests
@@ -8,7 +9,8 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task UnitOfWorkTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -29,7 +31,8 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task ReadUncommittedTransactionsTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -49,7 +52,7 @@ namespace CommQ.Data.IntegrationTests
             // should obtain a row lock
             await dbWriter1.CommandAsync("UPDATE dbo.TestTable SET Name = @Name WHERE Id = 2", parameters =>
             {
-                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test2Modified";
+                parameters.Add("@Name", DbType.String, 200).Value = "Test2Modified";
             });
 
             var item1 = await dbReader1.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
@@ -63,25 +66,26 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbReaderTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
             await PopulateTestTable(dbWriter);
             await uow.SaveChangesAsync();
 
-            var dbReaderFactory = new DbReaderFactory(_connectionString);
+            var dbReaderFactory = new DbReaderFactory(connFactory);
 
             await using var dbReader = await dbReaderFactory.CreateAsync();
             var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = @Id", parameters =>
             {
-                parameters.Add("@Id", SqlDbType.Int).Value = 2;
+                parameters.Add("@Id", DbType.Int32).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
 
             var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Name = @Name", parameters =>
             {
-                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
+                parameters.Add("@Name", DbType.String, 200).Value = "NonExistent";
             });
 
             Assert.Null(nonExistentItem);
@@ -90,18 +94,19 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task StoredProcedureTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
                 await PopulateTestTable(uow.CreateWriter());
                 await uow.SaveChangesAsync();
             }
-            var dbrFactory = new DbReaderFactory(_connectionString);
+            var dbrFactory = new DbReaderFactory(connFactory);
 
             await using var dbReader = await dbrFactory.CreateAsync();
             var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
             {
-                parameters.Add("@name", SqlDbType.VarChar, 20).Value = "Test1";
+                parameters.Add("@name", DbType.String, 20).Value = "Test1";
             });
             var hasRows = reader.Read();
             Assert.True(hasRows);
@@ -110,7 +115,8 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbWriterTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
                 var dbWriter = uow.CreateWriter();
@@ -124,7 +130,7 @@ namespace CommQ.Data.IntegrationTests
 
                 var id = await dbWriter.CommandAsync<int>("INSERT INTO dbo.TestTable (Name) OUTPUT INSERTED.Id VALUES (@Name)", parameters =>
                 {
-                    parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test";
+                    parameters.Add("@Name", DbType.String, 200).Value = "Test";
                 });
 
                 Assert.Equal(3, id);
@@ -134,27 +140,28 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbReaderMappingTest()
         {
-            var uowFactory = new UnitOfWorkFactory(_connectionString);
+            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
             await PopulateTestTable(dbWriter);
             await uow.SaveChangesAsync();
 
 
-            var dbReaderFactory = new DbReaderFactory(_connectionString);
+            var dbReaderFactory = new DbReaderFactory(connFactory);
 
             await using var dbReader = await dbReaderFactory.CreateAsync();
             var mapper = new TestMappedEntityMapper();
             var item = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Id = @Id", mapper, parameters =>
             {
-                parameters.Add("@Id", SqlDbType.Int).Value = 2;
+                parameters.Add("@Id", DbType.Int32).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
 
             var nonExistentItem = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Name = @Name", mapper, parameters =>
             {
-                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
+                parameters.Add("@Name", DbType.String, 200).Value = "NonExistent";
             });
 
             Assert.Null(nonExistentItem);
@@ -195,11 +202,26 @@ namespace CommQ.Data.IntegrationTests
             ");
             var numRows = await dbWriter.CommandAsync("INSERT INTO dbo.TestTable (Name) VALUES (@Name1), (@Name2)", parameters =>
             {
-                parameters.Add("@Name1", SqlDbType.VarChar, 200).Value = "Test1";
-                parameters.Add("@Name2", SqlDbType.VarChar, 200).Value = "Test2";
+                parameters.Add("@Name1", DbType.String, 200).Value = "Test1";
+                parameters.Add("@Name2", DbType.String, 200).Value = "Test2";
             });
 
             return numRows;
+        }
+    }
+
+    internal class SqlServerConnectionFactory : IConnectionFactory
+    {
+        private readonly string _connectionString;
+
+        public SqlServerConnectionFactory(string connectionString)
+        {
+            _connectionString = connectionString;
+        }
+
+        public IDbConnection Create()
+        {
+            return new SqlConnection(_connectionString);
         }
     }
 

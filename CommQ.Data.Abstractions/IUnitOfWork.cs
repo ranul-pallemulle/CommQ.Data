@@ -10,8 +10,8 @@ namespace CommQ.Data
         IDbCommand CreateCommand();
         IDbWriter CreateWriter();
         IDbReader CreateReader();
-        Task BeginTransactionAsync();
-        Task BeginTransactionAsync(IsolationLevel isolationLevel);
+        Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+        Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
         Task SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

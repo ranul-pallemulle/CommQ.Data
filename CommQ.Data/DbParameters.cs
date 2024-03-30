@@ -1,36 +1,36 @@
-﻿using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Data;
-using System.Text;
+﻿using System.Data;
 
 namespace CommQ.Data
 {
     internal class DbParameters : IDbParameters
     {
-        private readonly IDataParameterCollection _collection;
+        private readonly IDbCommand _command;
 
-        public DbParameters(IDataParameterCollection collection)
+        public DbParameters(IDbCommand command)
         {
-            _collection = collection;
+            _command = command;
         }
-        public IDbDataParameter Add(string parameterName, SqlDbType sqlDbType)
+        public IDbDataParameter Add(string parameterName, DbType dbType)
         {
-            if (_collection is SqlParameterCollection sqlCollection)
-            {
-                return sqlCollection.Add(parameterName, sqlDbType);
-            }
-            throw new NotSupportedException("Unsupported parameter collection type");
+            var parameter = _command.CreateParameter();
+            parameter.ParameterName = parameterName;
+            parameter.DbType = dbType;
+            return Add(parameter);
         }
 
-        public IDbDataParameter Add(string parameterName, SqlDbType sqlDbType, int size)
+        public IDbDataParameter Add(string parameterName, DbType dbType, int size)
         {
-            if (_collection is SqlParameterCollection sqlCollection)
-            {
-                return sqlCollection.Add(parameterName, sqlDbType, size);
-            }
-            throw new NotSupportedException("Unsupported parameter collection type");
+            var parameter = _command.CreateParameter();
+            parameter.ParameterName = parameterName;
+            parameter.DbType = dbType;
+            parameter.Size = size;
+            return Add(parameter);
+        }
+
+        public IDbDataParameter Add(IDbDataParameter parameter)
+        {
+            _command.Parameters.Add(parameter);
+            return parameter;
         }
     }
 }

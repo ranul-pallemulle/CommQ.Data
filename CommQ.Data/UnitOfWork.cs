@@ -1,7 +1,6 @@
-﻿using CommQ.Data.Extensions;
-using System;
-using System.Collections;
+﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,22 +17,36 @@ namespace CommQ.Data
             _connection = connection;
         }
 
-        public async Task BeginTransactionAsync()
+        public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_transaction != null)
             {
                 throw new InvalidOperationException("Cannot call BeginTransactionAsync while the current transaction is active");
             }
-            _transaction = await _connection.BeginTransactionAsync();
+            if (_connection is DbConnection conn)
+            {
+                _transaction = await conn.BeginTransactionAsync(cancellationToken);
+            }
+            else
+            {
+                _transaction = _connection.BeginTransaction();
+            }
         }
 
-        public async Task BeginTransactionAsync(IsolationLevel isolationLevel)
+        public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
             if (_transaction != null)
             {
                 throw new InvalidOperationException("Cannot call BeginTransactionAsync while the current transaction is active");
             }
-            _transaction = await _connection.BeginTransactionAsync(isolationLevel);
+            if (_connection is DbConnection conn)
+            {
+                _transaction = await conn.BeginTransactionAsync(isolationLevel, cancellationToken);
+            }
+            else
+            {
+                _transaction = _connection.BeginTransaction(isolationLevel);
+            }
         }
 
         public IDbCommand CreateCommand()
@@ -65,16 +78,32 @@ namespace CommQ.Data
         {
             if (_transaction != null && !_isTransactionDisposed)
             {
-                await _transaction.RollbackAsync().ConfigureAwait(false);
-                await _transaction.DisposeAsync().ConfigureAwait(false);
+                if (_transaction is DbTransaction tran)
+                {
+                    await tran.RollbackAsync().ConfigureAwait(false);
+                    await tran.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    _transaction.Rollback();
+                    _transaction.Dispose();
+                }
                 _isTransactionDisposed = true;
                 _transaction = null;
             }
 
             if (!_isConnectionDisposed)
             {
-                await _connection.CloseAsync().ConfigureAwait(false);
-                await _connection.DisposeAsync().ConfigureAwait(false);
+                if (_connection is DbConnection conn)
+                {
+                    await conn.CloseAsync().ConfigureAwait(false);
+                    await conn.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    _connection.Close();
+                    _connection.Dispose();
+                }
                 _isConnectionDisposed = true;
             }
 
@@ -109,8 +138,16 @@ namespace CommQ.Data
                 throw new ObjectDisposedException(nameof(UnitOfWork));
             }
 
-            await _transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            await _transaction.DisposeAsync().ConfigureAwait(false);
+            if (_transaction is DbTransaction tran)
+            {
+                await tran.CommitAsync(cancellationToken).ConfigureAwait(false);
+                await tran.DisposeAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _transaction.Commit();
+                _transaction.Dispose();
+            }
             _isTransactionDisposed = true;
             _transaction = null;
         }

@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
+﻿using System.Data;
 
 namespace CommQ.Data
 {
     public interface IDbParameters
     {
-        IDbDataParameter Add(string parameterName, SqlDbType sqlDbType);
-        IDbDataParameter Add(string parameterName, SqlDbType sqlDbType, int size);
+        IDbDataParameter Add(string parameterName, DbType dbType);
+        IDbDataParameter Add(string parameterName, DbType dbType, int size);
+        IDbDataParameter Add(IDbDataParameter parameter);
     }
 }

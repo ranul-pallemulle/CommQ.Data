@@ -1,8 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
+﻿using System.Data;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,11 +7,11 @@ namespace CommQ.Data
 {
     public class UnitOfWorkFactory : IUnitOfWorkFactory
     {
-        private readonly string _connectionString;
+        private readonly IConnectionFactory _connectionFactory;
 
-        public UnitOfWorkFactory(string connectionString)
+        public UnitOfWorkFactory(IConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory;
         }
 
         public async Task<IUnitOfWork> CreateAsync(CancellationToken cancellationToken = default)
@@ -33,8 +30,15 @@ namespace CommQ.Data
 
         private async Task<IUnitOfWork> ConstructUnitOfWork(CancellationToken cancellationToken)
         {
-            var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var connection = _connectionFactory.Create();
+            if (connection is DbConnection conn)
+            {
+                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                connection.Open();
+            }
             var uow = new UnitOfWork(connection);
             return uow;
         }
