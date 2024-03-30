@@ -4,19 +4,17 @@ using System.Threading.Tasks;
 
 namespace CommQ.Data
 {
-    public class DbReaderFactory : IDbReaderFactory
+    public class DbWriterFactory : IDbWriterFactory
     {
         private readonly IConnectionFactory _connectionFactory;
-
-        public DbReaderFactory(IConnectionFactory connectionFactory)
+        public DbWriterFactory(IConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
-
-        public async Task<IDbReader> CreateAsync(CancellationToken cancellationToken = default)
+        public async Task<IDbWriter> CreateAsync(CancellationToken cancellationToken = default)
         {
             var connection = await _connectionFactory.OpenAndGetAsync(cancellationToken);
-            return new DbReader(connection);
+            return new DbWriter(connection);
         }
     }
 }

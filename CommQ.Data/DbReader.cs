@@ -12,9 +12,9 @@ namespace CommQ.Data
         private readonly IDbConnection? _dbConnection;
         private readonly IUnitOfWork? _uow;
 
-        public DbReader(IDbConnection sqlConnection)
+        public DbReader(IDbConnection dbConnection)
         {
-            _dbConnection = sqlConnection;
+            _dbConnection = dbConnection;
         }
 
         public DbReader(IUnitOfWork uow)

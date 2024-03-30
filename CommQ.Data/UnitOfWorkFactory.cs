@@ -30,15 +30,7 @@ namespace CommQ.Data
 
         private async Task<IUnitOfWork> ConstructUnitOfWork(CancellationToken cancellationToken)
         {
-            var connection = _connectionFactory.Create();
-            if (connection is DbConnection conn)
-            {
-                await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                connection.Open();
-            }
+            var connection = await _connectionFactory.OpenAndGetAsync(cancellationToken);
             var uow = new UnitOfWork(connection);
             return uow;
         }

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CommQ.Data
 {
-    public interface IDbWriter : IDbCommandExecutor
+    public interface IDbWriter : IDbCommandExecutor, IAsyncDisposable, IDisposable
     {
         ValueTask<int> CommandAsync(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default);
 #if NET5_0_OR_GREATER

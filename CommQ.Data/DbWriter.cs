@@ -8,16 +8,22 @@ namespace CommQ.Data
 {
     public class DbWriter : IDbWriter
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IDbConnection? _dbConnection;
+        private readonly IUnitOfWork? _uow;
 
-        public DbWriter(IUnitOfWork unitOfWork)
+        public DbWriter(IDbConnection dbConnection)
         {
-            _unitOfWork = unitOfWork;
+            _dbConnection = dbConnection;
+        }
+
+        public DbWriter(IUnitOfWork uow)
+        {
+            _uow = uow;
         }
 
         public async ValueTask<IDataReader> RawAsync(string query, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
-            using var dbCommand = _unitOfWork.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = query;
 
@@ -32,7 +38,7 @@ namespace CommQ.Data
 
         public async ValueTask<int> StoredProcedureAsync(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
-            using var dbCommand = _unitOfWork.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.StoredProcedure;
             dbCommand.CommandText = storedProcedureName;
 
@@ -51,7 +57,7 @@ namespace CommQ.Data
         public async ValueTask<T> StoredProcedureAsync<T>(string storedProcedureName, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
 #endif
         {
-            using var dbCommand = _unitOfWork.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.StoredProcedure;
             dbCommand.CommandText = storedProcedureName;
 
@@ -75,7 +81,7 @@ namespace CommQ.Data
 
         public async ValueTask<int> CommandAsync(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
         {
-            using var dbCommand = _unitOfWork.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = command;
 
@@ -95,7 +101,7 @@ namespace CommQ.Data
         public async ValueTask<T> CommandAsync<T>(string command, Action<IDbParameters>? setupParameters = null, CancellationToken cancellationToken = default)
 #endif
         {
-            using var dbCommand = _unitOfWork.CreateCommand();
+            using var dbCommand = _uow?.CreateCommand() ?? _dbConnection!.CreateCommand();
             dbCommand.CommandType = CommandType.Text;
             dbCommand.CommandText = command;
 
@@ -115,6 +121,31 @@ namespace CommQ.Data
             }
             return (T)dbCommand.ExecuteScalar();
 #endif
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_dbConnection != null)
+            {
+                if (_dbConnection is DbConnection conn)
+                {
+                    await conn.CloseAsync().ConfigureAwait(false);
+                    await conn.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Dispose();
+                }    
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_dbConnection != null)
+            {
+                _dbConnection.Close();
+                _dbConnection.Dispose();
+            }
         }
     }
 }

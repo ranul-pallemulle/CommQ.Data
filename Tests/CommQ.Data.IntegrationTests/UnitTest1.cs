@@ -9,7 +9,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task UnitOfWorkTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
@@ -31,7 +31,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task ReadUncommittedTransactionsTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
@@ -66,7 +66,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbReaderTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
@@ -94,7 +94,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task StoredProcedureTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -115,7 +115,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task DbWriterTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using (var uow = await uowFactory.CreateAsync())
             {
@@ -138,9 +138,47 @@ namespace CommQ.Data.IntegrationTests
         }
 
         [Fact]
+        public async Task DbWriterFactoryTest()
+        {
+            var connFactory = GetConnectionFactory();
+            var dbrFactory = new DbReaderFactory(connFactory);
+            var dbwFactory = new DbWriterFactory(connFactory);
+
+            await using (var dbWriter = await dbwFactory.CreateAsync())
+            {
+                await CreateTestObjects(dbWriter);
+            }
+
+            await using (var dbReader = await dbrFactory.CreateAsync())
+            {
+                var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
+                {
+                    parameters.Add("@name", DbType.String, 20).Value = "Test1";
+                });
+                var hasRows = reader.Read();
+                Assert.False(hasRows);
+            }
+
+            await using (var dbWriter = await dbwFactory.CreateAsync())
+            {
+                await PopulateTestTable(dbWriter);
+            }
+
+            await using (var dbReader = await dbrFactory.CreateAsync())
+            {
+                var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
+                {
+                    parameters.Add("@name", DbType.String, 20).Value = "Test1";
+                });
+                var hasRows = reader.Read();
+                Assert.True(hasRows);
+            }
+        }
+
+        [Fact]
         public async Task DbReaderMappingTest()
         {
-            var connFactory = new SqlServerConnectionFactory(_connectionString);
+            var connFactory = GetConnectionFactory();
             var uowFactory = new UnitOfWorkFactory(connFactory);
             await using var uow = await uowFactory.CreateAsync();
             var dbWriter = uow.CreateWriter();
@@ -167,11 +205,12 @@ namespace CommQ.Data.IntegrationTests
             Assert.Null(nonExistentItem);
         }
 
-        private async Task<int> PopulateTestTable(IDbWriter dbWriter)
+        private async Task CreateTestObjects(IDbWriter dbWriter)
         {
             await dbWriter.CommandAsync("DROP PROCEDURE IF EXISTS dbo.BasicReadProc");
             await dbWriter.CommandAsync("DROP PROCEDURE IF EXISTS dbo.BasicWriteProc");
             await dbWriter.CommandAsync("DROP TABLE IF EXISTS dbo.TestTable");
+
             await dbWriter.CommandAsync("CREATE TABLE dbo.TestTable (Id INT PRIMARY KEY IDENTITY(1,1), Name VARCHAR(200))");
             await dbWriter.CommandAsync(@"
             CREATE PROCEDURE [dbo].[BasicReadProc]
@@ -200,6 +239,10 @@ namespace CommQ.Data.IntegrationTests
                 VALUES (@name)
             END
             ");
+        }
+        private async Task<int> PopulateTestTable(IDbWriter dbWriter)
+        {
+            await CreateTestObjects(dbWriter);
             var numRows = await dbWriter.CommandAsync("INSERT INTO dbo.TestTable (Name) VALUES (@Name1), (@Name2)", parameters =>
             {
                 parameters.Add("@Name1", DbType.String, 200).Value = "Test1";
@@ -207,6 +250,11 @@ namespace CommQ.Data.IntegrationTests
             });
 
             return numRows;
+        }
+
+        private IConnectionFactory GetConnectionFactory()
+        {
+            return new SqlServerConnectionFactory(_connectionString);
         }
     }
 
