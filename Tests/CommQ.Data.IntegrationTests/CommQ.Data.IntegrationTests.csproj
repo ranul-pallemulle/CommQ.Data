@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CommQ.Data.SqlServer\CommQ.Data.SqlServer.csproj" />
     <ProjectReference Include="..\..\CommQ.Data\CommQ.Data.csproj" />
   </ItemGroup>
 

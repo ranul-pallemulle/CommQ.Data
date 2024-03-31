@@ -4,12 +4,13 @@ namespace CommQ.Data
 {
     public interface IDbParameters
     {
+        IDbCommand Command { get; }
         IDbDataParameter Add(string parameterName, DbType dbType);
         IDbDataParameter Add(string parameterName, DbType dbType, int size);
         IDbDataParameter Add(IDbDataParameter parameter);
     }
 
-    internal class DbParameters : IDbParameters
+    public class DbParameters : IDbParameters
     {
         private readonly IDbCommand _command;
 
@@ -17,6 +18,7 @@ namespace CommQ.Data
         {
             _command = command;
         }
+        public IDbCommand Command => _command;
         public IDbDataParameter Add(string parameterName, DbType dbType)
         {
             var parameter = _command.CreateParameter();

@@ -1,3 +1,4 @@
+using CommQ.Data.SqlServer;
 using Microsoft.Data.SqlClient;
 using System.Data;
 
@@ -51,7 +52,7 @@ namespace CommQ.Data.IntegrationTests
             // should obtain a row lock
             await dbWriter1.CommandAsync("UPDATE dbo.TestTable SET Name = @Name WHERE Id = 2", parameters =>
             {
-                parameters.Add("@Name", DbType.String, 200).Value = "Test2Modified";
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test2Modified";
             });
 
             var item1 = await dbReader1.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = 2");
@@ -77,14 +78,14 @@ namespace CommQ.Data.IntegrationTests
             await using var dbReader = await dbReaderFactory.CreateAsync();
             var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Id = @Id", parameters =>
             {
-                parameters.Add("@Id", DbType.Int64).Value = 2;
+                parameters.Add("@Id", SqlDbType.BigInt).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
 
             var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM dbo.TestTable WHERE Name = @Name", parameters =>
             {
-                parameters.Add("@Name", DbType.String, 200).Value = "NonExistent";
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
             });
 
             Assert.Null(nonExistentItem);
@@ -105,7 +106,7 @@ namespace CommQ.Data.IntegrationTests
             await using var dbReader = await dbrFactory.CreateAsync();
             var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
             {
-                parameters.Add("@name", DbType.String, 20).Value = "Test1";
+                parameters.Add("@name", SqlDbType.VarChar, 20).Value = "Test1";
             });
             var hasRows = reader.Read();
             Assert.True(hasRows);
@@ -129,7 +130,7 @@ namespace CommQ.Data.IntegrationTests
 
                 var id = await dbWriter.CommandAsync<long>("INSERT INTO dbo.TestTable (Name) OUTPUT INSERTED.Id VALUES (@Name)", parameters =>
                 {
-                    parameters.Add("@Name", DbType.String, 200).Value = "Test";
+                    parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "Test";
                 });
 
                 Assert.Equal(3, id);
@@ -152,7 +153,7 @@ namespace CommQ.Data.IntegrationTests
             {
                 var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
                 {
-                    parameters.Add("@name", DbType.String, 20).Value = "Test1";
+                    parameters.Add("@name", SqlDbType.VarChar, 20).Value = "Test1";
                 });
                 var hasRows = reader.Read();
                 Assert.False(hasRows);
@@ -167,7 +168,7 @@ namespace CommQ.Data.IntegrationTests
             {
                 var reader = await dbReader.StoredProcedureAsync("BasicReadProc", parameters =>
                 {
-                    parameters.Add("@name", DbType.String, 20).Value = "Test1";
+                    parameters.Add("@name", SqlDbType.VarChar, 20).Value = "Test1";
                 });
                 var hasRows = reader.Read();
                 Assert.True(hasRows);
@@ -191,14 +192,14 @@ namespace CommQ.Data.IntegrationTests
             var mapper = new TestMappedEntityMapper();
             var item = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Id = @Id", mapper, parameters =>
             {
-                parameters.Add("@Id", DbType.Int64).Value = 2;
+                parameters.Add("@Id", SqlDbType.BigInt).Value = 2;
             });
 
             Assert.Equal("Test2", item?.Name);
 
             var nonExistentItem = await dbReader.SingleAsync("SELECT * FROM dbo.TestTable WHERE Name = @Name", mapper, parameters =>
             {
-                parameters.Add("@Name", DbType.String, 200).Value = "NonExistent";
+                parameters.Add("@Name", SqlDbType.VarChar, 200).Value = "NonExistent";
             });
 
             Assert.Null(nonExistentItem);
@@ -244,8 +245,8 @@ namespace CommQ.Data.IntegrationTests
             await CreateTestObjects(dbWriter);
             var numRows = await dbWriter.CommandAsync("INSERT INTO dbo.TestTable (Name) VALUES (@Name1), (@Name2)", parameters =>
             {
-                parameters.Add("@Name1", DbType.String, 200).Value = "Test1";
-                parameters.Add("@Name2", DbType.String, 200).Value = "Test2";
+                parameters.Add("@Name1", SqlDbType.VarChar, 200).Value = "Test1";
+                parameters.Add("@Name2", SqlDbType.VarChar, 200).Value = "Test2";
             });
 
             return numRows;
