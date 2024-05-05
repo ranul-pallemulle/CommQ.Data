@@ -20,11 +20,14 @@ namespace CommQ.Data
     {
         private readonly IDbConnection _connection;
         private IDbTransaction? _transaction;
+        private bool _disposeConnection;
         private bool _isTransactionDisposed = false;
         private bool _isConnectionDisposed = false;
-        public UnitOfWork(IDbConnection connection)
+
+        public UnitOfWork(IDbConnection connection, bool disposeConnection = false)
         {
             _connection = connection;
+            _disposeConnection = disposeConnection;
         }
 
         public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
@@ -102,7 +105,7 @@ namespace CommQ.Data
                 _transaction = null;
             }
 
-            if (!_isConnectionDisposed)
+            if (_disposeConnection && !_isConnectionDisposed)
             {
                 if (_connection is DbConnection conn)
                 {
@@ -129,7 +132,7 @@ namespace CommQ.Data
                 _transaction = null;
             }
 
-            if (!_isConnectionDisposed)
+            if (_disposeConnection && !_isConnectionDisposed)
             {
                 _connection.Close();
                 _connection.Dispose();

@@ -30,7 +30,7 @@ namespace CommQ.Data.IntegrationTests
         [Fact]
         public async Task ReadUncommittedTransactionsTest()
         {
-            var connFactory = new TestConnections().Sqlite;
+            var connFactory = new TestConnections().SqliteSharedCache;
             var uowFactory = new UnitOfWorkFactory(connFactory);
 
             await using (var uow = await uowFactory.CreateAsync())
@@ -58,8 +58,61 @@ namespace CommQ.Data.IntegrationTests
             var item2 = await dbReader2.SingleAsync<TestEntity>("SELECT * FROM TestTable WHERE Id = 2");
 
             Assert.Equal("Test2Modified", item1?.Name);
-            Assert.Equal("Test2", item2?.Name); // In SQLite, we cannot read uncommitted changes across connections
+            Assert.Equal("Test2Modified", item2?.Name); // the connection string must include Cache=Shared for this to work
 
+        }
+
+        [Fact]
+        public async Task DbReaderTest()
+        {
+            var connFactory = new TestConnections().Sqlite;
+            var uowFactory = new UnitOfWorkFactory(connFactory);
+            await using var uow = await uowFactory.CreateAsync();
+            var dbWriter = uow.CreateWriter();
+            await PopulateTestTable(dbWriter);
+            await uow.SaveChangesAsync();
+
+            var dbReaderFactory = new DbReaderFactory(connFactory);
+
+            await using var dbReader = await dbReaderFactory.CreateAsync();
+            var item = await dbReader.SingleAsync<TestEntity>("SELECT * FROM TestTable WHERE Id = @Id", parameters =>
+            {
+                parameters.Add("@Id", DbType.Int64).Value = 2;
+            });
+
+            Assert.Equal("Test2", item?.Name);
+
+            var nonExistentItem = await dbReader.SingleAsync<TestEntity>("SELECT * FROM TestTable WHERE Name = @Name", parameters =>
+            {
+                parameters.Add("@Name", DbType.String, 200).Value = "NonExistent";
+            });
+
+            Assert.Null(nonExistentItem);
+        }
+
+        [Fact]
+        public async Task DbWriterTest()
+        {
+            var connFactory = new TestConnections().Sqlite;
+            var uowFactory = new UnitOfWorkFactory(connFactory);
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                var dbWriter = uow.CreateWriter();
+                await PopulateTestTable(dbWriter);
+                await uow.SaveChangesAsync();
+            }
+
+            await using (var uow = await uowFactory.CreateAsync())
+            {
+                var dbWriter = uow.CreateWriter();
+
+                var id = await dbWriter.CommandAsync<long>("INSERT INTO TestTable (Name) VALUES (@Name) RETURNING Id", parameters =>
+                {
+                    parameters.Add("@Name", DbType.String, 200).Value = "Test";
+                });
+
+                Assert.Equal(3, id);
+            }
         }
 
         private async Task CreateTestObjects(IDbWriter dbWriter)
@@ -100,5 +153,7 @@ namespace CommQ.Data.IntegrationTests
     {
         public IConnectionFactory Sqlite { get; } = new SqliteConnectionFactory(
             "Data Source=C:\\Users\\ranul\\AppData\\Local\\Temp\\testcommqdatasqlite.db");
+        public IConnectionFactory SqliteSharedCache { get; } = new SqliteConnectionFactory(
+            "Cache=Shared;Data Source=C:\\Users\\ranul\\AppData\\Local\\Temp\\testcommqdatasqlite.db");
     }
 }

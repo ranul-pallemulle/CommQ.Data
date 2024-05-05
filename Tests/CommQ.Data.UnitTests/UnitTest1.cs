@@ -7,6 +7,50 @@ namespace CommQ.Data.UnitTests
     public class UnitTest1
     {
         [Fact]
+        public async Task DisposeConnectionTest()
+        {
+            var connection = new Mock<IDbConnection>();
+            var command = new Mock<IDbCommand>();
+            var transaction = new Mock<IDbTransaction>();
+
+            connection.Setup(c => c.CreateCommand()).Returns(command.Object);
+            connection.Setup(c => c.BeginTransaction()).Returns(transaction.Object);
+
+            IUnitOfWork sut = new UnitOfWork(connection.Object, disposeConnection: true);
+            await sut.BeginTransactionAsync();
+
+            await using (var uow = sut)
+            {
+
+            }
+
+            transaction.Verify(t => t.Dispose(), Times.Once);
+            connection.Verify(c => c.Dispose(), Times.Once);
+        }
+
+        [Fact]
+        public async Task PreventDisposeConnectionTest()
+        {
+            var connection = new Mock<IDbConnection>();
+            var command = new Mock<IDbCommand>();
+            var transaction = new Mock<IDbTransaction>();
+
+            connection.Setup(c => c.CreateCommand()).Returns(command.Object);
+            connection.Setup(c => c.BeginTransaction()).Returns(transaction.Object);
+
+            IUnitOfWork sut = new UnitOfWork(connection.Object, disposeConnection: false);
+            await sut.BeginTransactionAsync();
+
+            await using (var uow = sut)
+            {
+
+            }
+
+            transaction.Verify(t => t.Dispose(), Times.Once);
+            connection.Verify(c => c.Dispose(), Times.Never);
+        }
+
+        [Fact]
         public async Task DbWriterTest()
         {
             var connection = new Mock<IDbConnection>();
@@ -19,7 +63,7 @@ namespace CommQ.Data.UnitTests
             var realCommand = new SqlCommand();
             command.Setup(c => c.Parameters).Returns(realCommand.Parameters);
 
-            IUnitOfWork sut = new UnitOfWork(connection.Object);
+            IUnitOfWork sut = new UnitOfWork(connection.Object, disposeConnection: true);
             connection.Verify(c => c.BeginTransaction(), Times.Never());
 
             await sut.BeginTransactionAsync();
